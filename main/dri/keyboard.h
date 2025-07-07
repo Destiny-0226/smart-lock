@@ -1,0 +1,14 @@
+// `#pragma once`等价于以下代码
+// #ifndef KEYBOARD_H
+// #define KEYBOARD_H
+// ...
+// #endif
+#pragma once
+
+#include "stdint.h"
+
+// 0 表示第 0 个引脚
+#define KEYBOARD_INT 0
+
+void KEYBOARD_Init(void);
+uint8_t KEYBOARD_ReadKey(void);
