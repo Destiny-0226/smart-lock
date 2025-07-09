@@ -10,5 +10,5 @@
 // 0 表示第 0 个引脚
 #define KEYBOARD_INT 0
 
-void KEYBOARD_Init(void);
-uint8_t KEYBOARD_ReadKey(void);
+void Keyboard_Init(void);
+uint8_t Keyboard_ReadKey(void);
