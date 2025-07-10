@@ -1,15 +1,11 @@
 #include "keyboard.h"
-#include "hal/gpio_types.h"
+// #include "hal/gpio_types.h"
 #include "utils.h"
 
-// "driver/gpio.h" 来自于 esp-idf 的源码
-#include "driver/gpio.h"
-#include <stdint.h>
-
 // sda引脚号
-#define IIC_SDA_PIN 2
+#define IIC_SDA_PIN GPIO_NUM_2
 // scl引脚号
-#define IIC_SCL_PIN 1
+#define IIC_SCL_PIN GPIO_NUM_1
 
 // 将SDA设置为输出方向
 #define IIC_SDA_OUT gpio_set_direction(IIC_SDA_PIN, GPIO_MODE_OUTPUT)
@@ -27,7 +23,7 @@
 #define IIC_SCL_LOW gpio_set_level(IIC_SCL_PIN, 0)
 
 // 读取SDA的电平
-#define IIC_SDA_READ gpio_get_level(IIC_SDA_PIN)
+#define IIC_SDA_READ        gpio_get_level(IIC_SDA_PIN)
 
 #define IIC_SDA_SCL_PIN_SEL (1ULL << IIC_SDA_PIN) | (1ULL << IIC_SCL_PIN)
 
@@ -61,16 +57,12 @@ uint8_t IIC_SendByteAndGetNACK(uint8_t byte)
 {
     uint8_t i = 0;
     IIC_SDA_OUT;
-    for (i = 0; i < 8; i++)
-    {
+    for (i = 0; i < 8; i++) {
         IIC_SCL_LOW;
         DelayMs(1);
-        if ((byte >> 7) & 0x01)
-        {
+        if ((byte >> 7) & 0x01) {
             IIC_SDA_HIGH;
-        }
-        else
-        {
+        } else {
             IIC_SDA_LOW;
         }
         DelayMs(1);
@@ -85,10 +77,8 @@ uint8_t IIC_SendByteAndGetNACK(uint8_t byte)
     IIC_SCL_HIGH;
     DelayMs(1);
     i = 250;
-    while (i--)
-    {
-        if (!IIC_SDA_READ)
-        {
+    while (i--) {
+        if (!IIC_SDA_READ) {
             IIC_SCL_LOW;
             return 0;
         }
@@ -103,12 +93,9 @@ void IIC_Respond(uint8_t ack)
     IIC_SDA_OUT;
     IIC_SDA_LOW;
     IIC_SCL_LOW;
-    if (ack)
-    {
+    if (ack) {
         IIC_SDA_HIGH;
-    }
-    else
-    {
+    } else {
         IIC_SDA_LOW;
     }
     DelayMs(1);
@@ -120,12 +107,11 @@ void IIC_Respond(uint8_t ack)
 // 读取一个字节
 uint8_t IIC_ReadByte(void)
 {
-    uint8_t i = 0;
+    uint8_t i      = 0;
     uint8_t buffer = 0;
     IIC_SDA_IN;
     IIC_SCL_LOW;
-    for (i = 0; i < 8; i++)
-    {
+    for (i = 0; i < 8; i++) {
         DelayMs(1);
         IIC_SCL_HIGH;
         buffer = (buffer << 1) | IIC_SDA_READ;
@@ -141,8 +127,7 @@ uint8_t IIC_SimpleRead(uint16_t *result)
     uint8_t buf1 = 0;
     uint8_t buf2 = 0;
     IIC_Start();
-    if (IIC_SendByteAndGetNACK((0x42 << 1) | 0x01))
-    {
+    if (IIC_SendByteAndGetNACK((0x42 << 1) | 0x01)) {
         IIC_Stop();
         return 1;
     }
@@ -169,7 +154,7 @@ void Keyboard_Init(void)
     gpio_config(&io_conf);
 
     // 初始化中断引脚
-    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.mode      = GPIO_MODE_INPUT;
     io_conf.intr_type = GPIO_INTR_POSEDGE; // 上升沿中断
     // 无论按下哪一个按键，KEYBOARD_INT都会被拉高
     io_conf.pin_bit_mask = (1ULL << KEYBOARD_INT);

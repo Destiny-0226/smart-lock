@@ -4,6 +4,8 @@
 #include "freertos/task.h"
 #include "portmacro.h"
 #include "unistd.h"
+#include <stdint.h>
+#include "driver/gpio.h"
 
 // 延时函数
 

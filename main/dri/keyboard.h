@@ -5,10 +5,10 @@
 // #endif
 #pragma once
 
-#include "stdint.h"
+#include "utils.h"
 
 // 0 表示第 0 个引脚
-#define KEYBOARD_INT 0
+#define KEYBOARD_INT GPIO_NUM_0
 
 void Keyboard_Init(void);
 uint8_t Keyboard_ReadKey(void);
