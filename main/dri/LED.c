@@ -208,7 +208,7 @@ void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t
     }
 }
 
-void RMT_Init(void)
+void LED_RMT_Init(void)
 {
     rmt_tx_channel_config_t tx_chan_config = {
         .clk_src           = RMT_CLK_SRC_DEFAULT,    // 选择时钟源
@@ -228,52 +228,54 @@ void RMT_Init(void)
 }
 
 // LED 背景灯
-void LED_Background_Light(uint8_t led_num, uint16_t brightness, uint16_t delay_ms)
+void LED_Background_Light(uint8_t red, uint8_t green, uint8_t blue, uint8_t brightness)
 {
-    for (int i = 0; i < 3; i++) {
-        // 构建 RGB 像素值。
-        hue = led_num * 360 / LED_NUMBERS;
-        led_strip_hsv2rgb(hue, 30, 10, &red, &green, &blue);
-        led_strip_pixels[led_num * 3 + 0] = green;
-        led_strip_pixels[led_num * 3 + 1] = blue;
-        led_strip_pixels[led_num * 3 + 2] = red;
+    for (uint8_t i = 1; i <= 12; i++) {
+        LED_Keyoard_Light(i, red, green, blue, brightness, 0);
     }
-
-    // 将 RGB 像素值发送到 LED 灯。
-    ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-    ESP_ERROR_CHECK(rmt_tx_wait_all_done(led_chan, portMAX_DELAY));
-
-    DelayMs(100);
-
-    // 将像素数组置为0。
-    memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
-
-    // 再次发送RGB像素值，熄灭LED灯。
-    ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-    ESP_ERROR_CHECK(rmt_tx_wait_all_done(led_chan, portMAX_DELAY));
 }
 
-void light_led(uint8_t led_num)
+/**
+ * @brief 设置指定 LED 的颜色并点亮
+ *
+ * 该函数用于设置指定编号的 LED 的 RGB 颜色，并通过 RMT 发送数据点亮 LED。
+ * 支持亮度调节功能，通过比例缩放 RGB 值实现。
+ *
+ * @param led_num      要设置的 LED 编号 (0 到 LED_NUMBERS - 1)
+ * @param red          红色分量 (0 到 255)
+ * @param green        绿色分量 (0 到 255)
+ * @param blue         蓝色分量 (0 到 255)
+ * @param brightness   亮度百分比 (0 到 100)，0 表示熄灭，100 表示原始颜色亮度
+ * @param delay_ms     延迟时间，单位毫秒
+ */
+void LED_Keyoard_Light(uint8_t led_num, uint8_t red, uint8_t green, uint8_t blue, uint8_t brightness, uint16_t delay_ms)
 {
-    for (int i = 0; i < 3; i++) {
-        // 构建 RGB 像素值。
-        hue = led_num * 360 / LED_NUMBERS;
-        led_strip_hsv2rgb(hue, 30, 10, &red, &green, &blue);
-        led_strip_pixels[led_num * 3 + 0] = green;
-        led_strip_pixels[led_num * 3 + 1] = blue;
-        led_strip_pixels[led_num * 3 + 2] = red;
+    // 根据亮度调整 RGB 值
+    if (brightness > 100) {
+        brightness = 100;
     }
 
-    // 将 RGB 像素值发送到 LED 灯。
+    uint8_t adjusted_red   = (uint32_t)red * brightness / 100;
+    uint8_t adjusted_green = (uint32_t)green * brightness / 100;
+    uint8_t adjusted_blue  = (uint32_t)blue * brightness / 100;
+
+    // 设置像素值到对应 LED
+    led_strip_pixels[led_num * 3 + 0] = adjusted_green; // Green 分量放在第一位
+    led_strip_pixels[led_num * 3 + 1] = adjusted_blue;  // Blue 分量放在第二位
+    led_strip_pixels[led_num * 3 + 2] = adjusted_red;   // Red 分量放在第三位
+
+    // 发送数据到 LED
     ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
     ESP_ERROR_CHECK(rmt_tx_wait_all_done(led_chan, portMAX_DELAY));
 
-    DelayMs(100);
+    if (delay_ms > 0) {
+        DelayMs(delay_ms); // 等待一段时间
 
-    // 将像素数组置为0。
-    memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
+        // 清空像素数组，熄灭 LED
+        memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
 
-    // 再次发送RGB像素值，熄灭LED灯。
-    ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-    ESP_ERROR_CHECK(rmt_tx_wait_all_done(led_chan, portMAX_DELAY));
+        // 再次发送清零数据，确保 LED 熄灭
+        ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+        ESP_ERROR_CHECK(rmt_tx_wait_all_done(led_chan, portMAX_DELAY));
+    }
 }

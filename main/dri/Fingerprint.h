@@ -6,16 +6,8 @@
 /// 初始化指纹模块
 void Fingerprint_Init(void);
 
-uint8_t Finger_Sleep(void);
+int8_t Finger_Sleep(void);
 
-/// 获取指纹图像
-uint8_t Finger_GetImage(void);
+uint8_t Finger_Enroll(void);
 
-/// 获取指纹特征
-uint8_t Finger_GenChar(uint8_t BufferID);
-
-/// 搜索指纹
-int search(void);
-
-/// 读取指纹芯片配置参数
-void read_sys_params(void);
+uint8_t Finger_Identifiy(void);

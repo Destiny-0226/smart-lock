@@ -157,7 +157,7 @@ void Keyboard_Init(void)
     io_conf.mode      = GPIO_MODE_INPUT;
     io_conf.intr_type = GPIO_INTR_POSEDGE; // 上升沿中断
     // 无论按下哪一个按键，KEYBOARD_INT都会被拉高
-    io_conf.pin_bit_mask = (1ULL << KEYBOARD_INT);
+    io_conf.pin_bit_mask = (1ULL << KEYBOARD_INT_PIN);
     gpio_config(&io_conf);
 
     // 初始化时间300ms
