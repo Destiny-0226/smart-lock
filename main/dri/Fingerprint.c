@@ -513,6 +513,7 @@ int8_t Finger_Search(void)
  */
 uint8_t Finger_Enroll(void)
 {
+    static uint32_t finger_enroll_run_time = 0;
 
     printf("进入指纹录入模式\r\n");
     // 按下指纹的次数
@@ -521,17 +522,28 @@ uint8_t Finger_Enroll(void)
 
     // 获取指纹图像并生成特征值的循环过程
 SendGetImageCmd:
+
+    // 超时检测
+    if (finger_enroll_run_time == 0) {
+        finger_enroll_run_time = xTaskGetTickCount();
+    } else if (xTaskGetTickCount() - finger_enroll_run_time > pdMS_TO_TICKS(5000)) {
+        printf("指纹录入超时,退出指纹录入\r\n");
+        finger_enroll_run_time = 0;
+        return 1;
+    }
     // 指示用户放置手指并获取图像如果获取失败，则重新尝试
     if (Finger_GetImage()) goto SendGetImageCmd;
     // 生成特征值如果失败，则重新尝试获取图像
     if (Finger_GenChar(n)) goto SendGetImageCmd;
     // 提示用户拿开手指
     printf("请拿开手指\r\n");
-    DelayMs(1000);
+    DelayMs(500);
     // 提示用户再次放置手指
     printf("请再次放置手指\r\n");
     // 如果尚未达到预定的指纹数量，则继续循环
     if (n < N) {
+        // 如果录制成功了 更新超时时间
+        finger_enroll_run_time = xTaskGetTickCount();
         n++;
         goto SendGetImageCmd;
     }
