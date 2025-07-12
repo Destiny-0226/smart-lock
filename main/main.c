@@ -21,6 +21,14 @@
 #include "dri/flash.h"
 #include "dri/bluetooth.h"
 #include "dri/wifi.h"
+#include "dri/ota.h"
+
+// OTA 任务
+#define OTA_TASK_NAME       "ota_task"
+#define OTA_TASK_STACK_SIZE 8192
+#define OTA_TASK_PRIORITY   10
+TaskHandle_t ota_task_handle;
+static void ota_task(void *pvParameters);
 
 // 读取按键值任务
 #define READ_KEY_TASK_NAME       "read_key_task"
@@ -29,11 +37,12 @@
 #define READ_KEY_TASK_CYCLE_MS   10
 static void read_key_task(void *arg);
 static TaskHandle_t read_key_task_handle;
+
 // 按键获取任务
 #define PASSWORD_LEN        6                   // 密码是长度
 #define PASSWORD_TIMEOUT_MS pdMS_TO_TICKS(5000) // 超时间隔 (每两次按键按下的间隔 ms)
 static void led_task(void *arg);
-char password[PASSWORD_LEN]         = {0}; // 密码
+char password[PASSWORD_LEN + 1]     = {0}; // 密码
 static uint8_t pw_index             = 0;   // 密码输入索引
 static TickType_t pw_input_run_time = 0;   // 密码输入运行时间
 
@@ -129,6 +138,9 @@ void app_main(void)
 
     // 创建 超时检测任务
     xTaskCreate(timeout_task, TIMEOUT_TASK_NAME, TIMEOUT_TASK_STACK_SIZE, NULL, TIMEOUT_TASK_PRIORITY, &timeout_task_handle);
+
+    // 创建OTA
+    xTaskCreate(ota_task, OTA_TASK_NAME, OTA_TASK_STACK_SIZE, NULL, OTA_TASK_PRIORITY, &ota_task_handle);
 }
 
 static void read_key_task(void *arg)
@@ -171,8 +183,8 @@ static void read_key_task(void *arg)
         }
 
         if (pw_index == PASSWORD_LEN) {
-            char password_flash[PASSWORD_LEN] = {0};
-            size_t pw_len                     = sizeof(password_flash);
+            char password_flash[PASSWORD_LEN + 1] = {0};
+            size_t pw_len                         = sizeof(password_flash);
             Flash_ReadPassword(password_flash, &pw_len);
             if (memcmp(password, password_flash, sizeof(password)) == 0) {
                 printf("密码正确\r\n");
@@ -180,8 +192,9 @@ static void read_key_task(void *arg)
             } else {
                 printf("密码错误\r\n");
             }
-
-            pw_index = 0;
+            // printf("pw1:%s,pw2:%s\r\n", password, password_flash);
+            pw_input_run_time = 0;
+            pw_index          = 0;
             memset(password, 0, sizeof(password)); // 清空密码
         }
     }
@@ -247,5 +260,13 @@ static void timeout_task(void *arg)
             }
         }
         DelayMs(TIMEOUT_TASK_CYCLE_MS);
+    }
+}
+
+static void ota_task(void *pvParameters)
+{
+    while (1) {
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // 阻塞直到下一次通知
+        ota_init();
     }
 }

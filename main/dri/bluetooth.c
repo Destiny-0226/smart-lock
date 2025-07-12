@@ -53,6 +53,8 @@ static char test_device_name[ESP_BLE_ADV_NAME_LEN_MAX] = "Destiny_Smart_Lock";
 
 #define PREPARE_BUF_MAX_SIZE        1024
 
+extern TaskHandle_t ota_task_handle;
+
 static uint8_t char1_str[]             = {0x11, 0x22, 0x33};
 static esp_gatt_char_prop_t a_property = 0;
 
@@ -393,7 +395,7 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
             if (!param->write.is_prep) {
                 ESP_LOGI(GATTS_TAG, "value len %d, value ", param->write.len);
                 ESP_LOG_BUFFER_HEX(GATTS_TAG, param->write.value, param->write.len);
-                if (!memcmp(param->write.value, "openlock", 8)) {
+                if (param->write.len == 8 && !memcmp(param->write.value, "openlock", 8)) {
                     Motor_OpenLock();
                 }
                 printf("msg:%s len:%d\r\n", param->write.value, param->write.len);
@@ -402,6 +404,12 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
                         Flash_WritePassword((char *)(param->write.value + 4));
                     }
                 }
+                if (ota_task_handle != NULL && param->write.len == 3) {
+                    if (!memcmp(param->write.value, "ota", 3)) {
+                        xTaskNotifyGive(ota_task_handle);
+                    }
+                }
+
                 if (gl_profile_tab[PROFILE_A_APP_ID].descr_handle == param->write.handle && param->write.len == 2) {
                     uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
                     if (descr_value == 0x0001) {
